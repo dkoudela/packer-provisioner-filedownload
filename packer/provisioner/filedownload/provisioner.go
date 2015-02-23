@@ -7,6 +7,7 @@ import (
   "log"
   "fmt"
   "errors"
+  "bytes"
 )
 
 type config struct {
@@ -64,7 +65,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
   if errs != nil && len(errs.Errors) > 0 {
     return errs
   }
-//  return fmt.Errorf("Stop here for now !!! !!!")
+//  return fmt.Errorf("Stop here for now !!! !!!") // TODO: remove after testing
   return nil
 }
 
@@ -72,8 +73,6 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
   log.Println(fmt.Sprintf("Downloading %s => %s", p.config.Source, p.config.Destination))
   ui.Say(fmt.Sprintf("Downloading %s => %s", p.config.Source, p.config.Destination))
 
-  // We're downloading a file...
-  log.Println(fmt.Sprintf("Opening the target file: %s", p.config.Destination))
   f, err := os.OpenFile(p.config.Destination, os.O_WRONLY|os.O_CREATE, 0666)
   if err != nil {
     log.Println(fmt.Sprintf("Opening the target file failed: %s", err))
@@ -81,15 +80,30 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
   }
   defer f.Close()
 
-  err = comm.Download(p.config.Source, f)
+  var cmd *packer.RemoteCmd
+  var stdout bytes.Buffer
+  cmd = &packer.RemoteCmd{
+    Command: fmt.Sprintf("/bin/cat %s", p.config.Source),
+    Stdout: &stdout,
+  }
+
+  if err := comm.Start(cmd); err != nil {
+    return fmt.Errorf(
+      "Error executing /bin/cat: %s", err)
+  }
+  cmd.Wait()
+
+  var bwritten int64
+  bwritten, err = stdout.WriteTo(f)
   if err != nil {
-    ui.Error(fmt.Sprintf("Download failed: %s", err))
-  }
-  if err != nil { // TODO: Remove it later on
-    return err
-  }
-  return fmt.Errorf("Stop here for now !!! !!!")
-//  return nil
+    return fmt.Errorf(
+      "Error writing to file: %s : error: %s", p.config.Destination, err)
+  } 
+  log.Println(fmt.Sprintf("Bytes written to file %s: %d", p.config.Destination, bwritten))
+  ui.Say(fmt.Sprintf("Bytes written to file %s: %d", p.config.Destination, bwritten))
+
+//  return fmt.Errorf("Stop here for now !!! !!!") // TODO: remove after testing
+  return nil
 }
 
 func (p *Provisioner) Cancel() {
