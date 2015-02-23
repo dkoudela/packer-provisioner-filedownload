@@ -65,7 +65,7 @@ func (p *Provisioner) Prepare(raws ...interface{}) error {
   if errs != nil && len(errs.Errors) > 0 {
     return errs
   }
-//  return fmt.Errorf("Stop here for now !!! !!!") // TODO: remove after testing
+
   return nil
 }
 
@@ -102,7 +102,6 @@ func (p *Provisioner) Provision(ui packer.Ui, comm packer.Communicator) error {
   log.Println(fmt.Sprintf("Bytes written to file %s: %d", p.config.Destination, bwritten))
   ui.Say(fmt.Sprintf("Bytes written to file %s: %d", p.config.Destination, bwritten))
 
-//  return fmt.Errorf("Stop here for now !!! !!!") // TODO: remove after testing
   return nil
 }
 
